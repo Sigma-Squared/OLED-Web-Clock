@@ -47,12 +47,31 @@ TzOffset getTzOffsetByIp(String ip)
 
 void configureTimeWithNetwork()
 {
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.println("Getting ip from api.ipify.org...");
+  display.display();
   String publicIp = httpGet(http, "http://api.ipify.org/");
+  display.println(publicIp);
+  if (publicIp.length() == 0)
+  {
+    // get ip failed
+    display.println("Failed to get ip from api.ipify.org, using GMT instead.");
+    display.display();
+    configTime(0, 0, ntpServer);
+    delay(1000);
+    return;
+  }
+  display.println("Getting timzezone info from worldtimeapi.org...");
+  display.display();
   TzOffset tzOffset = getTzOffsetByIp(publicIp);
-  Serial.printf("Timzeone offset: %i Daylight savings offset: %i\n", tzOffset.tz_offset, tzOffset.dst_offset);
+  //Serial.printf("Timzeone offset: %i Daylight savings offset: %i\n", tzOffset.tz_offset, tzOffset.dst_offset);
 
   //init and get the time
   configTime(tzOffset.tz_offset, tzOffset.dst_offset, ntpServer);
+  display.printf("Timzeone offset: %i\nDaylight savings offset: %i\n", tzOffset.tz_offset, tzOffset.dst_offset);
+  display.display();
+  delay(1000);
 }
 
 void printLocalTime()
@@ -100,7 +119,6 @@ void setup()
   display.display();
 
   configureTimeWithNetwork();
-  printLocalTime();
 
   //disconnect WiFi as it's no longer needed
   WiFi.disconnect(true);
@@ -119,8 +137,10 @@ void loop()
     display.setCursor((128 - 12 * 8) / 2, (64 - 12) / 2);
     display.println(timeInfo, "%H:%M:%S");
     display.setTextSize(1);
-    display.setCursor(0, 64 - 8);
-    display.println(timeInfo, "%B %d %Y");
+    char date[17] = "";
+    strftime(date, 17, "%B %d %Y", timeInfo);
+    display.setCursor((128 - strlen(date) * 6) / 2, 64 - 8);
+    display.println(date);
     display.display();
   }
   delay(1000);
